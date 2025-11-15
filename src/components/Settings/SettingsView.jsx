@@ -69,11 +69,13 @@ const SettingsView = () => {
         await window.electronAPI.settings.set('author_name', authorName);
       }
 
+      // Reinitialize AI service with new settings
+      await window.electronAPI.settings.reinitializeAI();
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
 
-      // Show a message that the app needs to be restarted
-      alert('Settings saved! Please restart the application for changes to take effect.');
+      alert('Settings saved successfully! AI provider has been updated.');
     } catch (error) {
       console.error('Error saving settings:', error);
       alert('Error saving settings: ' + error.message);

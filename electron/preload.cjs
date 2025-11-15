@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   settings: {
     get: (key) => ipcRenderer.invoke('settings:get', key),
     set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+    reinitializeAI: () => ipcRenderer.invoke('settings:reinitializeAI'),
   },
 
   // Backup operations

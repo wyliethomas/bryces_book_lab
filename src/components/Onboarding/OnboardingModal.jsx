@@ -36,6 +36,9 @@ const OnboardingModal = ({ onComplete }) => {
       // Mark onboarding as complete
       await window.electronAPI.settings.set('onboarding_complete', 'true');
 
+      // Reinitialize AI service with new settings
+      await window.electronAPI.settings.reinitializeAI();
+
       // Call the completion handler
       onComplete();
     } catch (error) {

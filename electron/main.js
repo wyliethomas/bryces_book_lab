@@ -89,12 +89,8 @@ async function initializeServices() {
     console.log('🎉 All services initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
-    // Don't throw error if AI service initialization fails - user might need to configure it
-    if (error.message.includes('API key') || error.message.includes('configure')) {
-      console.log('⚠️ AI Service needs configuration. User will be prompted during onboarding.');
-    } else {
-      throw error;
-    }
+    console.log('⚠️ Some services may need configuration. User can configure via onboarding or Settings.');
+    // Don't throw error - allow app to continue so user can access onboarding/settings
   }
 }
 
@@ -212,6 +208,18 @@ ipcMain.handle('settings:get', async (event, key) => {
 
 ipcMain.handle('settings:set', async (event, key, value) => {
   return database.setSetting(key, value);
+});
+
+ipcMain.handle('settings:reinitializeAI', async () => {
+  try {
+    console.log('🔄 Reinitializing AI service...');
+    await aiService.initialize();
+    console.log('✅ AI service reinitialized');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Failed to reinitialize AI service:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // Backup IPC Handlers

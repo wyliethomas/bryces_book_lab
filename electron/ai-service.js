@@ -12,9 +12,17 @@ class AIService {
   async initialize() {
     // Get provider configuration from database
     const provider = this.database.getSetting('llm_provider');
-    this.provider = provider || 'openai'; // Default to OpenAI for backward compatibility
 
     console.log(`🔍 LLM Provider from database: "${provider}"`);
+
+    // If no provider is configured, skip initialization (onboarding not complete)
+    if (!provider) {
+      console.log('⏸️  No LLM provider configured yet. Waiting for onboarding...');
+      this.provider = null;
+      return;
+    }
+
+    this.provider = provider;
     console.log(`🔍 Using provider: "${this.provider}"`);
 
     if (this.provider === 'openai') {
@@ -73,6 +81,11 @@ class AIService {
   }
 
   async callLLM(messages, temperature = 0.7, maxTokens = 1000) {
+    // Check if provider is configured
+    if (!this.provider) {
+      throw new Error('LLM provider not configured. Please complete the onboarding process in Settings.');
+    }
+
     if (this.provider === 'openai') {
       if (!this.openai) {
         await this.initializeOpenAI();
