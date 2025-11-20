@@ -19,6 +19,34 @@ let aiService;
 let pdfGenerator;
 let dbPath; // Store database path for backup/restore
 
+// CSV Helper Functions
+function escapeCsvValue(value) {
+  if (value === null || value === undefined) return '';
+  const stringValue = String(value);
+  // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
+  if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function generateNotesCSV(notes) {
+  const headers = ['ID', 'Content', 'Topics', 'Created At'];
+  const rows = notes.map(note => [
+    note.id,
+    note.content.replace(/\n/g, ' '), // Replace newlines with spaces
+    note.topics || '',
+    new Date(note.created_at).toLocaleString()
+  ]);
+
+  const csvLines = [
+    headers.map(escapeCsvValue).join(','),
+    ...rows.map(row => row.map(escapeCsvValue).join(','))
+  ];
+
+  return csvLines.join('\n');
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -162,6 +190,65 @@ ipcMain.handle('notes:process', async (event, text) => {
   return aiService.processNotes(text);
 });
 
+ipcMain.handle('notes:delete', async (event, id) => {
+  return database.deleteNote(id);
+});
+
+ipcMain.handle('notes:getById', async (event, id) => {
+  return database.getNoteById(id);
+});
+
+ipcMain.handle('notes:update', async (event, id, content) => {
+  return database.updateNote(id, content);
+});
+
+ipcMain.handle('notes:linkTopic', async (event, noteId, topicId) => {
+  return database.linkNoteToTopic(noteId, topicId);
+});
+
+ipcMain.handle('notes:unlinkTopic', async (event, noteId, topicId) => {
+  return database.unlinkNoteFromTopic(noteId, topicId);
+});
+
+ipcMain.handle('notes:exportCSV', async (event, noteIds) => {
+  try {
+    console.log(`📊 Exporting ${noteIds.length} notes to CSV`);
+
+    // Fetch the selected notes
+    const notes = database.getNotesById(noteIds);
+
+    if (notes.length === 0) {
+      return { success: false, error: 'No notes found to export' };
+    }
+
+    // Generate CSV content
+    const csvContent = generateNotesCSV(notes);
+
+    // Show save dialog
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Notes to CSV',
+      defaultPath: `notes-export-${new Date().toISOString().split('T')[0]}.csv`,
+      filters: [
+        { name: 'CSV Files', extensions: ['csv'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled) {
+      return { success: false, cancelled: true };
+    }
+
+    // Write CSV file
+    fs.writeFileSync(result.filePath, csvContent, 'utf8');
+
+    console.log(`✅ CSV exported: ${result.filePath}`);
+    return { success: true, path: result.filePath };
+  } catch (error) {
+    console.error('❌ CSV export failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Topics IPC Handlers
 ipcMain.handle('topics:getAll', async () => {
   return database.getAllTopics();
@@ -173,6 +260,10 @@ ipcMain.handle('topics:getById', async (event, id) => {
 
 ipcMain.handle('topics:getNotes', async (event, topicId) => {
   return database.getNotesByTopicId(topicId);
+});
+
+ipcMain.handle('topics:create', async (event, name) => {
+  return database.createTopic(name);
 });
 
 // AI IPC Handlers

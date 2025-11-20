@@ -25,8 +25,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Notes operations
   notes: {
     getAll: () => ipcRenderer.invoke('notes:getAll'),
+    getById: (id) => ipcRenderer.invoke('notes:getById', id),
     create: (note) => ipcRenderer.invoke('notes:create', note),
+    update: (id, content) => ipcRenderer.invoke('notes:update', id, content),
+    linkTopic: (noteId, topicId) => ipcRenderer.invoke('notes:linkTopic', noteId, topicId),
+    unlinkTopic: (noteId, topicId) => ipcRenderer.invoke('notes:unlinkTopic', noteId, topicId),
     processNotes: (text) => ipcRenderer.invoke('notes:process', text),
+    delete: (id) => ipcRenderer.invoke('notes:delete', id),
+    exportCSV: (noteIds) => ipcRenderer.invoke('notes:exportCSV', noteIds),
   },
 
   // Topics operations
@@ -34,6 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAll: () => ipcRenderer.invoke('topics:getAll'),
     getById: (id) => ipcRenderer.invoke('topics:getById', id),
     getNotesByTopic: (topicId) => ipcRenderer.invoke('topics:getNotes', topicId),
+    create: (name) => ipcRenderer.invoke('topics:create', name),
   },
 
   // AI operations

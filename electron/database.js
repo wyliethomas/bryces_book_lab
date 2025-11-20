@@ -257,6 +257,58 @@ class BookDatabase {
     stmt.run(noteId, topicId);
   }
 
+  deleteNote(id) {
+    const stmt = this.db.prepare('DELETE FROM notes WHERE id = ?');
+    stmt.run(id);
+    return { success: true };
+  }
+
+  getNoteById(id) {
+    const stmt = this.db.prepare(`
+      SELECT n.*,
+        GROUP_CONCAT(t.name) as topics,
+        GROUP_CONCAT(t.id) as topic_ids
+      FROM notes n
+      LEFT JOIN notes_topics nt ON n.id = nt.note_id
+      LEFT JOIN topics t ON nt.topic_id = t.id
+      WHERE n.id = ?
+      GROUP BY n.id
+    `);
+    return stmt.get(id);
+  }
+
+  getNotesById(noteIds) {
+    if (!noteIds || noteIds.length === 0) {
+      return [];
+    }
+    const placeholders = noteIds.map(() => '?').join(',');
+    const stmt = this.db.prepare(`
+      SELECT n.*, GROUP_CONCAT(t.name) as topics
+      FROM notes n
+      LEFT JOIN notes_topics nt ON n.id = nt.note_id
+      LEFT JOIN topics t ON nt.topic_id = t.id
+      WHERE n.id IN (${placeholders})
+      GROUP BY n.id
+      ORDER BY n.created_at DESC
+    `);
+    return stmt.all(...noteIds);
+  }
+
+  updateNote(id, content) {
+    const stmt = this.db.prepare(`
+      UPDATE notes SET content = ? WHERE id = ?
+    `);
+    stmt.run(content, id);
+    return this.getNoteById(id);
+  }
+
+  unlinkNoteFromTopic(noteId, topicId) {
+    const stmt = this.db.prepare(`
+      DELETE FROM notes_topics WHERE note_id = ? AND topic_id = ?
+    `);
+    stmt.run(noteId, topicId);
+  }
+
   // Topics operations
   getAllTopics() {
     const stmt = this.db.prepare(`
